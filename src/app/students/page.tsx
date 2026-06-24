@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -109,6 +110,11 @@ export default function StudentsPage() {
                       >
                         Delete
                       </Button>
+                      <Link href={`/students/${student.id}`}>
+                        <Button size="sm" variant="secondary">
+                          View
+                        </Button>
+                      </Link>
                     </div>
                   </TableCell>
                 </TableRow>

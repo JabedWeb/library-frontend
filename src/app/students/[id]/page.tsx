@@ -1,0 +1,37 @@
+import { getStudent } from "@/services/students";
+
+type Props = {
+  params: Promise<{
+    id: string;
+  }>;
+};
+
+export default async function StudentDetailsPage({ params }: Props) {
+  const { id } = await params;
+
+  const student = await getStudent(Number(id));
+
+  return (
+    <div className="container mx-auto p-6">
+      <h1 className="mb-6 text-3xl font-bold">Student Details</h1>
+
+      <div className="rounded-lg border p-6">
+        <p>
+          <strong>ID:</strong> {student.id}
+        </p>
+
+        <p>
+          <strong>Name:</strong> {student.name}
+        </p>
+
+        <p>
+          <strong>Email:</strong> {student.email}
+        </p>
+
+        <p>
+          <strong>Phone:</strong> {student.phone}
+        </p>
+      </div>
+    </div>
+  );
+}
