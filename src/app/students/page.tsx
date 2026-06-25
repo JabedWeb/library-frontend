@@ -17,6 +17,7 @@ import { getStudents } from "@/services/students";
 import { Student } from "@/types/student";
 import { DeleteStudentDialog } from "@/components/students/delete-student-dialog";
 import { StudentDialog } from "@/components/students/student-dialog";
+import { ProtectedRoute } from "@/components/protected-route";
 
 export default function StudentsPage() {
   const [students, setStudents] = useState<Student[]>([]);
@@ -44,6 +45,8 @@ export default function StudentsPage() {
   }, []);
 
   return (
+ <ProtectedRoute>
+
     <div className="container mx-auto p-6">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-3xl font-bold">Students Management</h1>
@@ -139,5 +142,6 @@ export default function StudentsPage() {
         </>
       )}
     </div>
+    </ProtectedRoute>
   );
 }

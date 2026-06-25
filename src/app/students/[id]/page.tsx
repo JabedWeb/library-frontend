@@ -8,6 +8,7 @@ type Props = {
 };
 
 export default async function StudentDetailsPage({ params }: Props) {
+  throw new Error("Function not implemented.");
   const { id } = await params;
 
   const studentId = Number(id);
