@@ -14,6 +14,7 @@ type User = {
 type AuthContextType = {
   user: User | null;
   isAuthenticated: boolean;
+  isLoading: boolean;
   refreshUser: () => void;
   logout: () => void;
 };
@@ -25,11 +26,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
+  const [isLoading, setIsLoading] = useState(true);
+
   const refreshUser = () => {
     const token = getToken();
 
     setIsAuthenticated(!!token);
+
     setUser(getUser());
+
+    setIsLoading(false);
   };
 
   useEffect(() => {
@@ -40,7 +46,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     removeAuth();
 
     setUser(null);
+
     setIsAuthenticated(false);
+
+    setIsLoading(false);
   };
 
   return (
@@ -48,6 +57,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       value={{
         user,
         isAuthenticated,
+        isLoading,
         refreshUser,
         logout,
       }}

@@ -17,7 +17,7 @@ import { getStudents } from "@/services/students";
 import { Student } from "@/types/student";
 import { DeleteStudentDialog } from "@/components/students/delete-student-dialog";
 import { StudentDialog } from "@/components/students/student-dialog";
-import { ProtectedRoute } from "@/components/protected-route";
+import { AuthGuard } from "@/components/auth-guard";
 
 export default function StudentsPage() {
   const [students, setStudents] = useState<Student[]>([]);
@@ -45,103 +45,102 @@ export default function StudentsPage() {
   }, []);
 
   return (
- <ProtectedRoute>
+    <AuthGuard>
+      <div className="container mx-auto p-6">
+        <div className="mb-6 flex items-center justify-between">
+          <h1 className="text-3xl font-bold">Students Management</h1>
 
-    <div className="container mx-auto p-6">
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Students Management</h1>
+          <Button
+            onClick={() => {
+              setSelectedStudent(undefined);
 
-        <Button
-          onClick={() => {
-            setSelectedStudent(undefined);
+              setDialogOpen(true);
+            }}
+          >
+            Add Student
+          </Button>
+        </div>
 
-            setDialogOpen(true);
-          }}
-        >
-          Add Student
-        </Button>
-      </div>
-
-      {loading ? (
-        <p>Loading...</p>
-      ) : (
-        <>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>ID</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Phone</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-
-            <TableBody>
-              {students.map((student) => (
-                <TableRow key={student.id}>
-                  <TableCell>{student.id}</TableCell>
-
-                  <TableCell>{student.name}</TableCell>
-
-                  <TableCell>{student.email}</TableCell>
-
-                  <TableCell>{student.phone}</TableCell>
-
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          setSelectedStudent(student);
-
-                          setDialogOpen(true);
-                        }}
-                      >
-                        Edit
-                      </Button>
-
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => {
-                          setSelectedStudent(student);
-
-                          setDeleteOpen(true);
-                        }}
-                      >
-                        Delete
-                      </Button>
-                      <Link href={`/students/${student.id}`}>
-                        <Button size="sm" variant="secondary">
-                          View
-                        </Button>
-                      </Link>
-                    </div>
-                  </TableCell>
+        {loading ? (
+          <p>Loading...</p>
+        ) : (
+          <>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>ID</TableHead>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Phone</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-          <StudentDialog
-            open={dialogOpen}
-            onOpenChange={setDialogOpen}
-            student={selectedStudent}
-            onSuccess={loadStudents}
-          />
+              </TableHeader>
 
-          {selectedStudent && (
-            <DeleteStudentDialog
-              open={deleteOpen}
-              onOpenChange={setDeleteOpen}
-              studentId={selectedStudent.id}
+              <TableBody>
+                {students.map((student) => (
+                  <TableRow key={student.id}>
+                    <TableCell>{student.id}</TableCell>
+
+                    <TableCell>{student.name}</TableCell>
+
+                    <TableCell>{student.email}</TableCell>
+
+                    <TableCell>{student.phone}</TableCell>
+
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setSelectedStudent(student);
+
+                            setDialogOpen(true);
+                          }}
+                        >
+                          Edit
+                        </Button>
+
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => {
+                            setSelectedStudent(student);
+
+                            setDeleteOpen(true);
+                          }}
+                        >
+                          Delete
+                        </Button>
+                        <Link href={`/students/${student.id}`}>
+                          <Button size="sm" variant="secondary">
+                            View
+                          </Button>
+                        </Link>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+            <StudentDialog
+              open={dialogOpen}
+              onOpenChange={setDialogOpen}
+              student={selectedStudent}
               onSuccess={loadStudents}
             />
-          )}
-        </>
-      )}
-    </div>
-    </ProtectedRoute>
+
+            {selectedStudent && (
+              <DeleteStudentDialog
+                open={deleteOpen}
+                onOpenChange={setDeleteOpen}
+                studentId={selectedStudent.id}
+                onSuccess={loadStudents}
+              />
+            )}
+          </>
+        )}
+      </div>
+    </AuthGuard>
   );
 }
