@@ -1,4 +1,5 @@
 import { getStudent } from "@/services/students";
+import { notFound } from "next/navigation";
 
 type Props = {
   params: Promise<{
@@ -9,7 +10,16 @@ type Props = {
 export default async function StudentDetailsPage({ params }: Props) {
   const { id } = await params;
 
+  const studentId = Number(id);
+  if (!Number.isInteger(studentId) || studentId <= 0) {
+    notFound();
+  }
+
   const student = await getStudent(Number(id));
+
+  if (!student) {
+    notFound();
+  }
 
   return (
     <div className="container mx-auto p-6">
