@@ -28,8 +28,9 @@ export function AppHeader() {
         <nav className="flex items-center gap-4">
           <Link href="/">Home</Link>
 
+          <Link href="/authors">Authors</Link>
+          <Link href="/categories">Categories</Link>
           <Link href="/books">Books</Link>
-
           <Link href="/students">Students</Link>
 
           {isAuthenticated ? (
