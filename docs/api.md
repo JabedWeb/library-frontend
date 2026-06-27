@@ -18,9 +18,7 @@ Authenticated requests use the token returned by `POST /auth/login`:
 Authorization: Bearer <access_token>
 ```
 
-Catalog reads are public. Staff operations require a JWT with the `ADMIN` or
-`LIBRARIAN` role. Destructive catalog and order deletion operations require
-`ADMIN`.
+At present, only `GET /authors` requires authentication and the `ADMIN` role. All other controller endpoints are public.
 
 ## Common errors
 
@@ -36,12 +34,12 @@ NestJS errors generally have this shape:
 
 Common status codes:
 
-| Status        | Meaning                                                                                                 |
-| ------------- | ------------------------------------------------------------------------------------------------------- |
-| `400`         | Invalid request body/parameter, duplicate unique value, or unavailable stock                            |
-| `401`         | Missing, invalid, or expired bearer token; or invalid login credentials                                 |
-| `403`         | Authenticated user does not have the required role                                                      |
-| `404`         | Requested entity does not exist                                                                         |
+| Status | Meaning |
+| --- | --- |
+| `400` | Invalid request body/parameter, duplicate unique value, or unavailable stock |
+| `401` | Missing, invalid, or expired bearer token; or invalid login credentials |
+| `403` | Authenticated user does not have the required role |
+| `404` | Requested entity does not exist |
 | `409` / `500` | A database constraint was violated; some Prisma errors are not explicitly translated by the application |
 
 ## Data shapes
@@ -129,188 +127,45 @@ Fields such as `photoUrl`, `imageUrl`, and `pdfPath` are generated or persisted 
 
 ## Endpoint index
 
-| Method   | Path                      | Description                         | Access                       |
-| -------- | ------------------------- | ----------------------------------- | ---------------------------- |
-| `POST`   | `/auth/register`          | Register a librarian                | Admin bearer token           |
-| `POST`   | `/auth/login`             | Log in                              | Public                       |
-| `GET`    | `/auth/profile`           | Read JWT identity                   | Bearer token                 |
-| `GET`    | `/search`                 | Global catalog search               | Public                       |
-| `GET`    | `/health`                 | Application/database readiness      | Public                       |
-| `GET`    | `/dashboard/summary`      | Dashboard metrics and recent orders | Admin/librarian bearer token |
-| `POST`   | `/authors`                | Create an author                    | Admin/librarian bearer token |
-| `GET`    | `/authors`                | List authors                        | Public                       |
-| `GET`    | `/authors/catalog`        | Search and paginate authors         | Public                       |
-| `GET`    | `/authors/:id/books`      | Get an author and their books       | Public                       |
-| `GET`    | `/authors/:id/details`    | Author with paginated books         | Public                       |
-| `GET`    | `/authors/:id`            | Get an author                       | Public                       |
-| `PATCH`  | `/authors/:id`            | Update an author                    | Admin/librarian bearer token |
-| `DELETE` | `/authors/:id`            | Delete an author                    | Admin bearer token           |
-| `POST`   | `/categories`             | Create a category                   | Admin/librarian bearer token |
-| `GET`    | `/categories`             | List categories and books           | Public                       |
-| `GET`    | `/categories/catalog`     | Search and paginate categories      | Public                       |
-| `GET`    | `/categories/:id/details` | Category with paginated books       | Public                       |
-| `GET`    | `/categories/:id`         | Get a category and its books        | Public                       |
-| `PATCH`  | `/categories/:id`         | Update a category                   | Admin/librarian bearer token |
-| `DELETE` | `/categories/:id`         | Delete a category                   | Admin bearer token           |
-| `POST`   | `/books`                  | Create a book                       | Admin/librarian bearer token |
-| `GET`    | `/books`                  | List/search books                   | Public                       |
-| `GET`    | `/books/catalog`          | Filter, sort, and paginate books    | Public                       |
-| `GET`    | `/books/:id/details`      | Complete book details               | Public                       |
-| `GET`    | `/books/:id/summary`      | Get borrowing summary for a book    | Admin/librarian bearer token |
-| `GET`    | `/books/:id`              | Get a book                          | Public                       |
-| `PATCH`  | `/books/:id`              | Update a book                       | Admin/librarian bearer token |
-| `DELETE` | `/books/:id`              | Delete a book                       | Admin bearer token           |
-| `POST`   | `/students`               | Create a student                    | Admin/librarian bearer token |
-| `GET`    | `/students`               | List/search students                | Admin/librarian bearer token |
-| `GET`    | `/students/search`        | Search and paginate students        | Admin/librarian bearer token |
-| `GET`    | `/students/:id/details`   | Student with paginated history      | Admin/librarian bearer token |
-| `GET`    | `/students/:id/summary`   | Get borrowing summary for a student | Admin/librarian bearer token |
-| `GET`    | `/students/:id`           | Get a student                       | Admin/librarian bearer token |
-| `PATCH`  | `/students/:id`           | Update a student                    | Admin/librarian bearer token |
-| `DELETE` | `/students/:id`           | Delete a student                    | Admin bearer token           |
-| `POST`   | `/student-profiles`       | Create a profile                    | Admin/librarian bearer token |
-| `GET`    | `/student-profiles`       | List profiles                       | Admin/librarian bearer token |
-| `GET`    | `/student-profiles/:id`   | Get a profile                       | Admin/librarian bearer token |
-| `PATCH`  | `/student-profiles/:id`   | Update a profile                    | Admin/librarian bearer token |
-| `DELETE` | `/student-profiles/:id`   | Delete a profile                    | Admin bearer token           |
-| `POST`   | `/orders`                 | Borrow a book                       | Admin/librarian bearer token |
-| `GET`    | `/orders`                 | List orders                         | Admin/librarian bearer token |
-| `GET`    | `/orders/search`          | Filter and paginate orders          | Admin/librarian bearer token |
-| `GET`    | `/orders/:id`             | Get an order                        | Admin/librarian bearer token |
-| `PATCH`  | `/orders/:id`             | Safely update an order              | Admin/librarian bearer token |
-| `PATCH`  | `/orders/:id/return`      | Return a borrowed book              | Admin/librarian bearer token |
-| `DELETE` | `/orders/:id`             | Delete a returned order             | Admin bearer token           |
-| `GET`    | `/orders/:id/pdf`         | Download order PDF                  | Admin/librarian bearer token |
-
-## Search, pagination, filtering, and dashboard
-
-The advanced list endpoints return a stable pagination envelope:
-
-```json
-{
-  "data": [],
-  "meta": {
-    "page": 1,
-    "limit": 20,
-    "total": 0,
-    "totalPages": 0,
-    "hasNextPage": false,
-    "hasPreviousPage": false
-  }
-}
-```
-
-`page` defaults to `1`. `limit` defaults to `20` and is capped at `100`.
-Invalid query values return `400`. Legacy list endpoints remain unchanged for
-backward compatibility.
-
-### Global search
-
-`GET /search?q=nest&limit=5`
-
-Searches book titles/ISBNs, author names, and category names in one request.
-`q` must contain at least two characters and `limit` is capped at `20` per
-resource. The response contains lightweight `books`, `authors`, and
-`categories` arrays under `data`, making it suitable for navigation-bar search.
-
-### Book catalog
-
-`GET /books/catalog`
-
-| Query           | Values/meaning                                             |
-| --------------- | ---------------------------------------------------------- |
-| `search`        | Partial title or ISBN                                      |
-| `title`         | Partial title                                              |
-| `authorId`      | Exact author ID                                            |
-| `categoryId`    | Books belonging to the category                            |
-| `availability`  | `available` or `unavailable`                               |
-| `sort`          | `latest`, `oldest`, `alphabetical`, `stock`, `borrowCount` |
-| `page`, `limit` | Pagination                                                 |
-
-Example:
-
-`GET /books/catalog?categoryId=2&availability=available&sort=borrowCount&page=1&limit=12`
-
-Each result includes its author, categories, and `_count.orders` borrow count.
-
-### Author catalog and details
-
-`GET /authors/catalog?search=humayun&sort=alphabetical&page=1&limit=20`
-
-Author sort modes are `latest`, `oldest`, `alphabetical`, and `bookCount`.
-Results include `_count.books`.
-
-`GET /authors/:id/details?page=1&limit=20`
-
-Returns `author` and a paginated `books` envelope. The legacy
-`GET /authors/:id/books` remains available.
-
-### Category catalog and details
-
-`GET /categories/catalog?search=programming&sort=bookCount&page=1&limit=20`
-
-Category sort modes are `latest`, `oldest`, `alphabetical`, and `bookCount`.
-
-`GET /categories/:id/details?page=1&limit=20`
-
-Returns `category` and a paginated `books` envelope. Books include authors,
-categories, and borrow counts.
-
-### Book details
-
-`GET /books/:id/details`
-
-Returns the book, author, categories, availability, total borrow count, the 20
-most recent sanitized borrow-history records, and up to six related books that
-share a category. Student identities are intentionally excluded from this
-public endpoint.
-
-### Student search and details
-
-`GET /students/search`
-
-Requires staff authentication. Supports `id`, partial `name`, partial `email`,
-partial `phone`, `page`, `limit`, and `sort` (`latest`, `oldest`, or
-`alphabetical`). List records include profile and order count without loading
-unbounded order history.
-
-`GET /students/:id/details?page=1&limit=20`
-
-Returns the student profile, total/current/overdue borrowing counts, and
-paginated order history with book, author, and category information.
-
-### Order filtering
-
-`GET /orders/search`
-
-Requires staff authentication.
-
-| Query                 | Values/meaning                               |
-| --------------------- | -------------------------------------------- |
-| `status`              | `BORROWED`, `RETURNED`, or derived `OVERDUE` |
-| `studentId`, `bookId` | Exact relationship filters                   |
-| `fromDate`, `toDate`  | ISO 8601 order-date range                    |
-| `sort`                | `latest`, `oldest`, or `dueDate`             |
-| `page`, `limit`       | Pagination                                   |
-
-Example:
-
-`GET /orders/search?status=OVERDUE&studentId=4&sort=dueDate&page=1&limit=20`
-
-### Dashboard
-
-`GET /dashboard/summary?recentLimit=10`
-
-Requires staff authentication. Returns title count, available-copy stock,
-authors, categories, students, active borrowings, available titles, overdue
-borrowings, and recent orders. `recentLimit` is capped at `50`.
-
-### Health check
-
-`GET /health`
-
-Returns `200` when the API and PostgreSQL connection are ready, or `503` when
-the database is unavailable.
+| Method | Path | Description | Access |
+| --- | --- | --- | --- |
+| `POST` | `/auth/register` | Register a user | Public |
+| `POST` | `/auth/login` | Log in | Public |
+| `GET` | `/auth/profile` | Read JWT identity | Bearer token |
+| `POST` | `/authors` | Create an author | Public |
+| `GET` | `/authors` | List authors | Admin bearer token |
+| `GET` | `/authors/:id/books` | Get an author and their books | Public |
+| `GET` | `/authors/:id` | Get an author | Public |
+| `PATCH` | `/authors/:id` | Update an author | Public |
+| `DELETE` | `/authors/:id` | Delete an author | Public |
+| `POST` | `/categories` | Create a category | Public |
+| `GET` | `/categories` | List categories and books | Public |
+| `GET` | `/categories/:id` | Get a category and its books | Public |
+| `PATCH` | `/categories/:id` | Update a category | Public |
+| `DELETE` | `/categories/:id` | Delete a category | Public |
+| `POST` | `/books` | Create a book | Public |
+| `GET` | `/books` | List/search books | Public |
+| `GET` | `/books/:id/summary` | Get borrowing summary for a book | Public |
+| `GET` | `/books/:id` | Get a book | Public |
+| `PATCH` | `/books/:id` | Update a book | Public |
+| `DELETE` | `/books/:id` | Delete a book | Public |
+| `POST` | `/students` | Create a student | Public |
+| `GET` | `/students` | List/search students | Public |
+| `GET` | `/students/:id/summary` | Get borrowing summary for a student | Public |
+| `GET` | `/students/:id` | Get a student | Public |
+| `PATCH` | `/students/:id` | Update a student | Public |
+| `DELETE` | `/students/:id` | Delete a student | Public |
+| `POST` | `/student-profiles` | Create a profile | Public |
+| `GET` | `/student-profiles` | List profiles | Public |
+| `GET` | `/student-profiles/:id` | Get a profile | Public |
+| `PATCH` | `/student-profiles/:id` | Update a profile | Public |
+| `DELETE` | `/student-profiles/:id` | Delete a profile | Public |
+| `POST` | `/orders` | Borrow a book | Public |
+| `GET` | `/orders` | List orders | Public |
+| `GET` | `/orders/:id` | Get an order | Public |
+| `PATCH` | `/orders/:id` | Update/return an order | Public |
+| `DELETE` | `/orders/:id` | Delete an order | Public |
+| `GET` | `/orders/:id/pdf` | Download order PDF | Public |
 
 ## Authentication
 
@@ -318,24 +173,21 @@ the database is unavailable.
 
 `POST /auth/register`
 
-Requires an `ADMIN` bearer token. This provisions a staff librarian account;
-there is currently no public customer/student authentication role.
-
 Request body:
 
-| Field      | Type   | Required | Validation                                                     |
-| ---------- | ------ | -------- | -------------------------------------------------------------- |
-| `name`     | string | Yes      | Non-empty                                                      |
-| `email`    | string | Yes      | Valid and unique email                                         |
-| `password` | string | Yes      | At least 6 characters                                          |
-| `role`     | string | No       | Only `LIBRARIAN` is accepted publicly; defaults to `LIBRARIAN` |
+| Field | Type | Required | Validation |
+| --- | --- | --- | --- |
+| `name` | string | Yes | Non-empty |
+| `email` | string | Yes | Valid and unique email |
+| `password` | string | Yes | At least 6 characters |
+| `role` | string | No | `ADMIN` or `LIBRARIAN`; defaults to `LIBRARIAN` |
 
 ```json
 {
   "name": "Library Admin",
   "email": "admin@example.com",
   "password": "secret123",
-  "role": "LIBRARIAN"
+  "role": "ADMIN"
 }
 ```
 
@@ -348,15 +200,12 @@ Success: `201 Created`
     "id": 1,
     "name": "Library Admin",
     "email": "admin@example.com",
-    "role": "LIBRARIAN"
+    "role": "ADMIN"
   }
 }
 ```
 
-Returns `400` with `Email already exists` if the email is registered. Returns
-`403` if registration attempts to create an `ADMIN`. Administrators are
-provisioned with `npm run seed` using `ADMIN_EMAIL`, `ADMIN_PASSWORD`, and the
-optional `ADMIN_NAME` environment variable.
+Returns `400` with `Email already exists` if the email is registered.
 
 ### Log in
 
@@ -422,8 +271,7 @@ Success: `200 OK`
 
 `GET /authors`
 
-Returns `200` with an array of Authors ordered by descending ID. This catalog
-read is public.
+Requires an `ADMIN` bearer token. Returns `200` with an array of Authors ordered by descending ID. A librarian receives `403 Access denied`.
 
 ### Get an author's books
 
@@ -510,13 +358,13 @@ Returns `200` with the deleted Category or `404`.
 
 Request body:
 
-| Field         | Type      | Required | Validation                                   |
-| ------------- | --------- | -------- | -------------------------------------------- |
-| `title`       | string    | Yes      | Non-empty                                    |
-| `isbn`        | string    | No       | Unique when supplied                         |
-| `stock`       | integer   | Yes      | Minimum `0`                                  |
-| `authorId`    | integer   | Yes      | Must reference an author                     |
-| `categoryIds` | integer[] | Yes      | Non-empty; each ID must reference a category |
+| Field | Type | Required | Validation |
+| --- | --- | --- | --- |
+| `title` | string | Yes | Non-empty |
+| `isbn` | string | No | Unique when supplied |
+| `stock` | integer | Yes | Minimum `0` |
+| `authorId` | integer | Yes | Must reference an author |
+| `categoryIds` | integer[] | Yes | Non-empty; each ID must reference a category |
 
 ```json
 {
@@ -536,10 +384,10 @@ Returns `201` with the created Book including `author` and `categories`.
 
 Optional query parameters can be combined:
 
-| Query      | Meaning                                      |
-| ---------- | -------------------------------------------- |
-| `title`    | Case-insensitive partial title match         |
-| `author`   | Case-insensitive partial author-name match   |
+| Query | Meaning |
+| --- | --- |
+| `title` | Case-insensitive partial title match |
+| `author` | Case-insensitive partial author-name match |
 | `category` | Case-insensitive partial category-name match |
 
 Example: `GET /books?title=nest&category=programming`
@@ -627,11 +475,11 @@ Returns the deleted Book or `404`. Deletion can fail if orders reference the boo
 
 Optional query parameters can be combined:
 
-| Query   | Meaning                              |
-| ------- | ------------------------------------ |
-| `id`    | Exact numeric student ID             |
+| Query | Meaning |
+| --- | --- |
+| `id` | Exact numeric student ID |
 | `email` | Case-insensitive partial email match |
-| `phone` | Partial phone match                  |
+| `phone` | Partial phone match |
 
 Example: `GET /students?email=arifur&phone=017`
 
@@ -703,11 +551,11 @@ Only one profile can exist for each student.
 
 `POST /student-profiles`
 
-| Field       | Type    | Required | Validation                                              |
-| ----------- | ------- | -------- | ------------------------------------------------------- |
-| `studentId` | integer | Yes      | Must reference a student; must be unique among profiles |
-| `address`   | string  | No       | String                                                  |
-| `age`       | number  | No       | Minimum `1`                                             |
+| Field | Type | Required | Validation |
+| --- | --- | --- | --- |
+| `studentId` | integer | Yes | Must reference a student; must be unique among profiles |
+| `address` | string | No | String |
+| `age` | number | No | Minimum `1` |
 
 ```json
 {
@@ -761,11 +609,7 @@ An order represents one student borrowing one book.
 
 All fields are required. IDs must be integers and `dueDate` must be an ISO 8601 date string.
 
-The endpoint checks the student and book, atomically decrements stock only when
-stock is available, and creates the order in one database transaction. It then
-attempts to generate a PDF and email it. PDF/email failure is logged but does
-not roll back the successfully created order. The due date must be in the
-future.
+The endpoint checks the student and book, decrements stock in a database transaction, creates the order, then attempts to generate a PDF and email it. PDF/email failure is logged but does not roll back the successfully created order.
 
 Success: `201 Created`. The response is the Order including `student` and `book`; it normally includes `pdfPath` such as `/uploads/orders/order-1.pdf`.
 
@@ -793,13 +637,13 @@ Returns the Order including `student` and `book`. As in the list endpoint, overd
 
 All fields are optional:
 
-| Field        | Type    | Validation/behavior                                                   |
-| ------------ | ------- | --------------------------------------------------------------------- |
-| `studentId`  | integer | Immutable after creation; a different value is rejected               |
-| `bookId`     | integer | Immutable after creation; a different value is rejected               |
-| `dueDate`    | string  | ISO 8601 date string                                                  |
-| `status`     | string  | `BORROWED` or `RETURNED`; `OVERDUE` is derived and cannot be assigned |
-| `returnDate` | string  | ISO 8601 date string; only valid when returning                       |
+| Field | Type | Validation/behavior |
+| --- | --- | --- |
+| `studentId` | integer | Must reference a student |
+| `bookId` | integer | Must reference a book |
+| `dueDate` | string | ISO 8601 date string |
+| `status` | string | `BORROWED`, `RETURNED`, or `OVERDUE` |
+| `returnDate` | string | ISO 8601 date string |
 
 Typical return request:
 
@@ -810,32 +654,13 @@ Typical return request:
 }
 ```
 
-When a non-returned order first changes to `RETURNED`, book stock is incremented
-in the same transaction. A returned order cannot be reopened. Returns the
-updated Order including `student` and `book`, or `404 Order not found`.
-
-### Return an order
-
-`PATCH /orders/:id/return`
-
-This is the preferred return endpoint. `returnDate` is optional and defaults to
-the current server time:
-
-```json
-{
-  "returnDate": "2026-06-30T10:00:00.000Z"
-}
-```
-
-The order status and book stock are updated atomically. Repeating the request
-does not increment stock again.
+When a non-returned order first changes to `RETURNED`, book stock is incremented in the same transaction. Returns the updated Order including `student` and `book`, or `404 Order not found`.
 
 ### Delete an order
 
 `DELETE /orders/:id`
 
-Requires `ADMIN`. Only an already returned order can be deleted. Active or
-overdue loans must be returned first, preventing deletion from corrupting stock.
+Returns the deleted Order or `404`. Deleting an order does not restore book stock.
 
 ### Download an order PDF
 
@@ -843,39 +668,10 @@ overdue loans must be returned first, preventing deletion from corrupting stock.
 
 Returns `200` with `Content-Type: application/pdf` and downloads the file as `order-<id>.pdf`. The saved PDF is used when available; otherwise it is generated in memory. Returns `404` if the order does not exist.
 
-## Stored files
+## Static files
 
-The `uploads` directory is not exposed as a public static directory because
-order PDFs contain student information. Authenticated staff must use
-`GET /orders/:id/pdf`. The `pdfPath` field is an internal storage reference,
-not a public URL.
+Files under the project's `uploads` directory are publicly served beneath `/uploads`. For example, a stored order PDF can be fetched directly using:
 
-## Production configuration
+`GET /uploads/orders/order-1.pdf`
 
-Required environment variables are `DATABASE_URL`, `JWT_SECRET`, `MAIL_HOST`,
-`MAIL_USER`, and `MAIL_PASS`. `JWT_SECRET` must contain at least 32 characters.
-
-Optional runtime variables:
-
-| Variable         | Purpose                                                  |
-| ---------------- | -------------------------------------------------------- |
-| `PORT`           | HTTP port; defaults to `3333`                            |
-| `CORS_ORIGINS`   | Comma-separated allowed origins; defaults to localhost   |
-| `MAIL_PORT`      | SMTP port                                                |
-| `MAIL_SECURE`    | Explicit SMTP TLS mode                                   |
-| `ENABLE_SWAGGER` | Set `true` to expose Swagger while `NODE_ENV=production` |
-
-Every response includes an `x-request-id`. The server also applies baseline
-content-type, framing, referrer, and browser-permission security headers and
-supports graceful shutdown.
-
-Apply the query-optimization indexes during deployment:
-
-```bash
-npx prisma migrate deploy
-```
-
-Indexes cover foreign keys and the fields used by status, due-date, stock,
-created-date, name, phone, and compound order filters. The new list services
-use selected relations, relation counts, bounded result sets, and transactional
-record/count queries to avoid unbounded payloads and inconsistent pagination.
+Unlike `/orders/:id/pdf`, a direct static-file request is not a controller endpoint and does not regenerate a missing PDF.
