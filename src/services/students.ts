@@ -34,11 +34,24 @@ export const deleteStudent = async (id: number) => {
   await api.delete(`/students/${id}`);
 };
 
-
-
 export const getStudent = async (id: number) => {
   try {
     const response = await api.get(`/students/${id}`);
+
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.status === 404) {
+      return null;
+    }
+
+    throw error;
+  }
+};
+
+export const getStudentSummary = async (id: number) => {
+  try {
+    const response = await api.get(`/students/${id}/summary`);
+
     return response.data;
   } catch (error) {
     if (axios.isAxiosError(error) && error.response?.status === 404) {
