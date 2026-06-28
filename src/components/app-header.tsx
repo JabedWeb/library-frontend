@@ -32,6 +32,7 @@ export function AppHeader() {
           <Link href="/categories">Categories</Link>
           <Link href="/books">Books</Link>
           <Link href="/students">Students</Link>
+          <Link href="/orders">Orders</Link>
 
           {isAuthenticated ? (
             <>
