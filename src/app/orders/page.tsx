@@ -141,7 +141,7 @@ export default function OrdersPage() {
   };
 
   return (
-    <AuthGuard>
+    <AuthGuard roles={["ADMIN"]}>
       <div className="container mx-auto p-6">
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
